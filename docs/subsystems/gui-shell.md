@@ -26,6 +26,7 @@ three.
 4. The page reads `GET /api/state` and writes through `POST` routes. Each write answers with the new state, built under `held`.
 5. Closing the window hides it. On the Mac a full-screen window first leaves full screen (`closeStep`). The system's close on the panel (a title bar's X, Alt+F4, a window manager's close key) hides it as Escape does, so the tray icon opens it again; a panel lightweight mode let go, no longer `h.panel`, closes (`makePanel`, `TestPanelCloseHidesIt`).
 6. The window opens as it was last left. Its settled size and whether it was maximised are kept in `settings.Window` and `settings.WindowMaximised` (`settle`; per machine, see `KeepOwn`). A maximised window keeps the size it restores to. `makeMain` opens it at that size (`openSize`). On its first show, `placeMain` maximises it again on the Mac and Windows (on Windows once the page has come). On Linux, `makeMain` makes it maximised with `StartState`. On Windows a size larger than the screen's work area is fitted and centred (`fitRoom`), and the larger size stays kept. The window's position is not kept.
+7. On the Mac, magpie sits in the Dock and Cmd+Tab as a regular app while its main window is open, and hides back to the tray alone when the window closes (`inDock`; Settings → Dock: With window, the default for a file that never chose). Settings can keep it out (Hide) or in always (Show); a full-screen window keeps it in the Dock whatever they say (`dockOnFullscreen`).
 
 ## Constraints and failure behavior
 

@@ -58,8 +58,9 @@ type Settings struct {
 	Dock bool `json:"dock,omitempty"`
 	// DockWindow shows it in the Dock only while its window is open, so
 	// Cmd-Tab reaches the window without an icon kept there the rest of
-	// the time. Dock wins over it.
-	DockWindow bool `json:"dockWindow,omitempty"`
+	// the time. Dock wins over it. The key is written even when false, so
+	// a file without it is one that never chose (Load).
+	DockWindow bool `json:"dockWindow"`
 	// Proxy for magpie's own requests to vendors: "" follows the
 	// environment and then the system, "direct" uses none, anything else
 	// is the proxy (http://, https:// or socks5://; host:port means http).
@@ -798,10 +799,30 @@ func Load() Settings {
 	// read again only once the file changed: a look at the agents asks for
 	// the settings for every model of every agent (hundreds of reads, a
 	// fifth of the Agents page's wait)
-	if b, err := filememo.Read("settings", Path(), func(b []byte) ([]byte, error) { return b, nil }); err == nil {
-		_ = json.Unmarshal(bytes.TrimPrefix(b, []byte("\xef\xbb\xbf")), &s)
+	if b, err := filememo.Read("settings", Path(), func(b []byte) ([]byte, error) { return b, nil }); err != nil {
+		// No file yet: the default holds until the user chooses (a save
+		// writes the key either way, which is what makes a choice stick).
+		s.DockWindow = true
+	} else {
+		b = bytes.TrimPrefix(b, []byte("\xef\xbb\xbf"))
+		if json.Unmarshal(b, &s) == nil && !dockWindowSet(b) {
+			// A file that never said keeps the new default (#1381): the main
+			// window open puts magpie in the Dock and Cmd+Tab as a regular
+			// app; one hidden back to the tray alone. Save has written the
+			// key ever since the choice existed, so an absent key means the
+			// user never chose, not that they chose off. A file that does
+			// not parse stays as it decodes, like everywhere else.
+			s.DockWindow = true
+		}
 	}
 	return s.normal()
+}
+
+// dockWindowSet says whether the settings file says anything at all about
+// DockWindow.
+func dockWindowSet(b []byte) bool {
+	var raw map[string]json.RawMessage
+	return json.Unmarshal(b, &raw) == nil && raw["dockWindow"] != nil
 }
 
 // CheckProxy says whether p is a proxy setting magpie takes: "" (follow),
